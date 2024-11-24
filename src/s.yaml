@@ -1,0 +1,92 @@
+# ------------------------------------
+#   欢迎您使用阿里云函数计算 fc3 组件进行项目开发
+#   组件仓库地址：https://github.com/devsapp/fc3
+#   组件帮助文档：https://manual.serverless-devs.com/user-guide/aliyun/#fc3
+#   Yaml参考文档：https://manual.serverless-devs.com/user-guide/aliyun/fc3/spec/
+#   关于Serverless Devs和FC组件的关系、如何声明/部署多个函数等问题，可以参考文档：https://manual.serverless-devs.com/user-guide/tips/
+#   关于如何做CICD等问题，可以参考：https://manual.serverless-devs.com/user-guide/cicd/
+#   关于如何进行环境划分等问题，可以参考：https://docs.serverless-devs.com/practices/multi-env/
+#   更多函数计算案例，可参考：https://github.com/devsapp/awesome/
+#   有问题快来钉钉群问一下吧：33947367
+# ------------------------------------
+edition: 3.0.0
+name: start-bitwarden-v3
+# access 是当前应用所需要的密钥信息配置：
+# 密钥配置可以参考：https://docs.serverless-devs.com/user-guide/builtin/config/
+# 密钥使用顺序可以参考：https://docs.serverless-devs.com/dev-guide/cli_design/#_11
+access: "{{ access }}"
+
+vars: # 全局变量
+  region: "{{ region }}"
+  environmentVariables:     #为函数配置环境变量
+    AppVersion: "v0.0.1"
+
+resources:
+  bitwarden:
+    # 如果只想针对 bitwarden 下面的业务进行相关操作，可以在命令行中加上 bitwarden，例如：
+    # 只对 bitwarden 进行构建：s bitwarden build
+    # 如果不带有 bitwarden ，而是直接执行 s build，工具则会对当前Yaml下，所有和 bitwarden 平级的业务模块（如有其他平级的模块，例如下面注释的next_function），按照一定顺序进行 build 操作
+    component: fc3 # 组件名称，Serverless Devs 工具本身类似于一种游戏机，不具备具体的业务能力，组件类似于游戏卡，用户通过向游戏机中插入不同的游戏卡实现不同的功能，即通过使用不同的组件实现不同的具体业务能力
+    actions:       # 自定义执行逻辑，关于actions 的使用，可以参考：https://docs.serverless-devs.com/user-guide/spec/#_10
+      pre-${regex('deploy|local')}: 
+        - component: fc3 build --dockerfile ./code/Dockerfile --context ./code # 要运行的组件，格式为【component: 组件名 命令 参数】
+    props:
+      region: ${vars.region} # 关于变量的使用方法，可以参考：https://docs.serverless-devs.com/user-guide/spec/#_3
+      functionName: "{{ functionName }}"
+      runtime: custom-container
+      description: "hello world by serverless devs"
+      timeout: 60
+      memorySize: 128
+      cpu: 0.1
+      diskSize: 512
+      code: ./code
+      customContainerConfig:
+        image: "{{ acrImage }}"
+        port: 80
+      environmentVariables: ${vars.environmentVariables}  #  为函数配置环境变量
+      vpcConfig: auto
+      # logConfig: auto
+      nasConfig: # NAS配置, 配置后function可以访问指定NAS, auto 不能指定目录
+        userId: 10003 # userID, 默认为10003
+        groupId: 10003 # groupID, 默认为10003
+        mountPoints: # 目录配置
+          - serverAddr: '{{ mountPointsServerAddr }}:/'
+            nasDir: '/{{ functionName }}' # NAS目录
+            mountDir: /data # 添加此行，指定函数计算实例内的挂载目录
+      # triggers:
+      #   - triggerName: httpTrigger
+      #     triggerType: http
+      #     triggerConfig:
+      #       authType: anonymous
+      #       methods:
+      #         - GET
+      #         - POST
+      #         - PUT
+      #         - DELETE
+      #         - HEAD
+      #         - OPTIONS
+  fc3_domain_bitwarden:
+    component: fc3-domain
+    props:
+      region: ${vars.region}
+      domainName: auto
+      protocol: HTTP
+      routeConfig:
+        routes:
+          - path: /*
+            functionName: "{{ functionName }}"
+  # next_function: # 第二个函数的案例，仅供参考
+  #  # 如果在当前项目下执行 s deploy，会同时部署模块
+  #  # 如果想单独部署当前服务与函数，可以执行 s + 模块名/业务名 + deploy，例如：s next_function deploy
+  #  # 如果想单独部署当前函数，可以执行 s + 模块名/业务名 + deploy function，例如：s next_function deploy function
+  #  # 更多命令可参考：https://manual.serverless-devs.com/user-guide/aliyun/#fc3
+  #   component: fc3
+  #   props:
+  #     region: ${vars.region}
+  #     functionName: next_function_example
+  #     description: 'hello world by serverless devs'
+  #     runtime: "nodejs14"
+  #     code: ./code
+  #     handler: index.handler
+  #     memorySize: 128
+  #     timeout: 60

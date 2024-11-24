@@ -1,0 +1,66 @@
+Edition: 3.0.0
+Type: Project
+Name: start-bitwarden-v3
+Version: 0.0.1
+Provider:
+  - 阿里云 # 取值内容参考：https://api.devsapp.cn/v3/common/args.html
+Description: Serverless Devs 部署 bitwarden
+HomePage: https://github.com/VinerFiner/start-bitwarden-v3
+Tags: #标签详情
+  - bitwarden
+  - 密码管理
+  - Docker
+Category: 新手入门 # 取值内容参考：https://api.devsapp.cn/v3/common/args.html
+Service: # 使用的服务
+  函数计算: # 取值内容参考：https://api.devsapp.cn/v3/common/args.html
+    Authorities: #权限描述
+      - AliyunFCFullAccess # 所需要的权限，例如AliyunFCFullAccess
+  硬盘挂载:
+    Authorities:
+      - AliyunNASFullAccess
+  专有网络:
+    Authorities:
+      - AliyunVPCFullAccess
+  容器镜像服务:
+    Authorities:
+      - AliyunContainerRegistryFullAccess
+# Organization: 阿里云函数计算（FC） # 所属组织
+Effective: Public # 是否公开，取值：Public，Private，Organization
+Parameters:
+  type: object
+  additionalProperties: false # 不允许增加其他属性
+  required: # 必填项
+    - region
+    - functionName
+  properties:
+    region:
+      title: 地域
+      type: string
+      default: cn-hongkong
+      description: 创建应用所在的地区
+      enum:
+        - cn-beijing
+        - cn-hangzhou
+        - cn-shanghai
+        - cn-hongkong
+    functionName:
+      title: 函数名称
+      type: string
+      default: start-bitwarden-${default-suffix}
+      pattern: "^[a-zA-Z_][a-zA-Z0-9-_]{0,127}$"
+      description: 只能包含字母、数字、下划线和中划线。不能以数字、中划线开头。长度在 1-128 之间。
+    mountPointsServerAddr:
+      title: NAS挂载点地址
+      type: string
+      default: ""
+      description: NAS 挂载点地址，可以登录 <a href="https://nasnext.console.aliyun.com" target="_blank">NAS控制台</a> 查看
+      x-nas:
+        denpendency:
+          - region
+    acrImage:
+      title: ACR 镜像
+      type: string
+      default: "registry.${vars.region}.aliyuncs.com/<your namespace>/<your image>:<your tag>"
+      description: 阿里云容器镜像服务ACR的镜像地址,格式为 registry.${vars.region}.aliyuncs.com/<your namespace>/<your image>:<your tag>
+      x-acr:
+        type: 'select'
